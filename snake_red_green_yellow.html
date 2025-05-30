@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dragon Hunt Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #0a0a12;
+      color: #e0e0e0;
+    }
+
+    header {
+      background-color: #0f0f19;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 20px rgba(0, 191, 255, 0.2);
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 10;
+    }
+
+    header h1 {
+      color: #00ffcc;
+      font-size: 1.8rem;
+      margin: 0;
+    }
+
+    #scoreBoard {
+      position: fixed;
+      top: 80px;
+      left: 20px;
+      background: #141422;
+      color: #00ffcc;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      box-shadow: 0 0 10px rgba(0, 255, 200, 0.2);
+      z-index: 10;
+    }
+
+    canvas {
+      display: block;
+      margin-top: 100px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🐉 Dragon Hunt Game</h1>
+  </header>
+
+  <div id="scoreBoard">Score: 0 | High Score: 0</div>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let w = canvas.width = window.innerWidth;
+    let h = canvas.height = window.innerHeight;
+
+    window.addEventListener("resize", () => {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    });
+
+    const SEGMENTS = 22;
+    let body = Array.from({ length: SEGMENTS }, () => ({ x: w / 2, y: h / 2 }));
+    let mouse = { x: w / 2, y: h / 2 };
+    let score = 0;
+    let highScore = 0;
+
+    let prey = { x: Math.random() * w, y: Math.random() * h, radius: 12 };
+    let preySpeed = 1.5;
+    let preyDir = Math.random() * 2 * Math.PI;
+
+    let prey2 = { x: Math.random() * w, y: Math.random() * h, radius: 10 };
+    let prey2Speed = 1.2;
+    let prey2Dir = Math.random() * 2 * Math.PI;
+
+    let bombs = Array.from({ length: 4 }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      radius: 14,
+      speed: 1.2 + Math.random(),
+      dir: Math.random() * 2 * Math.PI
+    }));
+
+    const scoreBoard = document.getElementById("scoreBoard");
+
+    window.addEventListener("mousemove", e => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    function drawBone(x, y, size) {
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fillStyle = "white";
+      ctx.fill();
+    }
+
+    function drawSnout(x, y, angle) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(-15, -6);
+      ctx.lineTo(15, 0);
+      ctx.lineTo(-15, 6);
+      ctx.closePath();
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawTail(x, y, angle) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-20, 0);
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPrey() {
+      ctx.beginPath();
+      ctx.arc(prey.x, prey.y, prey.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "red";
+      ctx.fill();
+    }
+
+    function drawGreenPrey() {
+      ctx.beginPath();
+      ctx.arc(prey2.x, prey2.y, prey2.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "lime";
+      ctx.fill();
+    }
+
+    function drawBomb(bomb) {
+      ctx.beginPath();
+      ctx.arc(bomb.x, bomb.y, bomb.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "yellow";
+      ctx.fill();
+    }
+
+    function updateObject(obj, speed, dir) {
+      obj.x += Math.cos(dir) * speed;
+      obj.y += Math.sin(dir) * speed;
+      if (obj.x < 0 || obj.x > w) dir = Math.PI - dir;
+      if (obj.y < 0 || obj.y > h) dir = -dir;
+      return dir;
+    }
+
+    function checkCollision(obj, radius) {
+      const dx = obj.x - body[0].x;
+      const dy = obj.y - body[0].y;
+      return Math.sqrt(dx * dx + dy * dy) < radius + 20;
+    }
+
+    function spawnNewPrey() {
+      prey.x = Math.random() * w;
+      prey.y = Math.random() * h;
+      preyDir = Math.random() * 2 * Math.PI;
+      preySpeed += 0.2;
+    }
+
+    function spawnNewGreenPrey() {
+      prey2.x = Math.random() * w;
+      prey2.y = Math.random() * h;
+      prey2Dir = Math.random() * 2 * Math.PI;
+      prey2Speed += 0.1;
+    }
+
+    function spawnNewBombs() {
+      bombs = Array.from({ length: 4 }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        radius: 14,
+        speed: 1.2 + Math.random(),
+        dir: Math.random() * 2 * Math.PI
+      }));
+    }
+
+    function resetGame() {
+      if (score > highScore) highScore = score;
+      score = 0;
+      preySpeed = 1.5;
+      prey2Speed = 1.2;
+      body = Array.from({ length: SEGMENTS }, () => ({ x: w / 2, y: h / 2 }));
+      spawnNewPrey();
+      spawnNewGreenPrey();
+      spawnNewBombs();
+    }
+
+    function animate() {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+      ctx.fillRect(0, 0, w, h);
+
+      body[0].x += (mouse.x - body[0].x) * 0.15;
+      body[0].y += (mouse.y - body[0].y) * 0.15;
+
+      for (let i = 1; i < SEGMENTS; i++) {
+        const prev = body[i - 1];
+        const curr = body[i];
+        const dx = prev.x - curr.x;
+        const dy = prev.y - curr.y;
+        const angle = Math.atan2(dy, dx);
+        curr.x = prev.x - Math.cos(angle) * 30;
+        curr.y = prev.y - Math.sin(angle) * 30;
+      }
+
+      const tail = body[SEGMENTS - 1];
+      const beforeTail = body[SEGMENTS - 2];
+      drawTail(tail.x, tail.y, Math.atan2(beforeTail.y - tail.y, beforeTail.x - tail.x));
+
+      for (let i = 0; i < SEGMENTS; i++) {
+        drawBone(body[i].x, body[i].y, 8 - i * 0.2);
+      }
+
+      const head = body[0];
+      const neck = body[1];
+      drawSnout(head.x, head.y, Math.atan2(neck.y - head.y, neck.x - head.x));
+
+      preyDir = updateObject(prey, preySpeed, preyDir);
+      prey2Dir = updateObject(prey2, prey2Speed, prey2Dir);
+      drawPrey();
+      drawGreenPrey();
+
+      bombs.forEach((bomb, i) => {
+        bomb.dir = updateObject(bomb, bomb.speed, bomb.dir);
+        drawBomb(bomb);
+        if (checkCollision(bomb, bomb.radius)) {
+          resetGame();
+        }
+      });
+
+      if (checkCollision(prey, prey.radius)) {
+        score++;
+        spawnNewPrey();
+      }
+
+      if (checkCollision(prey2, prey2.radius)) {
+        score += 2;
+        spawnNewGreenPrey();
+      }
+
+      scoreBoard.textContent = `Score: ${score} | High Score: ${highScore}`;
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
