@@ -1,65 +1,213 @@
-board = [" " for x in range(9)]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tic-Tac-Toe</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
 
-def print_board():
-    row1 = "| {} | {} | {} |".format(board[0], board[1], board[2])
-    row2 = "| {} | {} | {} |".format(board[3], board[4], board[5])
-    row3 = "| {} | {} | {} |".format(board[6], board[7], board[8])
+    #particles-js {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      z-index: -1;
+    }
 
-    print()
-    print(row1)
-    print(row2)
-    print(row3)
-    print()
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      color: white;
+      text-align: center;
+    }
 
-def player_move(icon):
-    if icon == "X":
-        number = 1
-    elif icon == "O":
-        number = 2
+    h1 {
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 5px #000000aa;
+    }
 
-    print("Your turn player {}".format(number))
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      gap: 10px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
 
-    choice = int(input("Enter your move (1-9): ").strip())
-    if board[choice - 1] == " ":
-        board[choice - 1] = icon
-    else:
-        print()
-        print("That space is taken!")
+    .cell {
+      width: 100px;
+      height: 100px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 15px;
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.3s;
+    }
 
-def is_victory(icon):
-    if (board[0] == icon and board[1] == icon and board[2] == icon) or \
-       (board[3] == icon and board[4] == icon and board[5] == icon) or \
-       (board[6] == icon and board[7] == icon and board[8] == icon) or \
-       (board[0] == icon and board[3] == icon and board[6] == icon) or \
-       (board[1] == icon and board[4] == icon and board[7] == icon) or \
-       (board[2] == icon and board[5] == icon and board[8] == icon) or \
-       (board[0] == icon and board[4] == icon and board[8] == icon) or \
-       (board[2] == icon and board[4] == icon and board[6] == icon):
-        return True
-    else:
-        return False
+    .cell:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.05);
+    }
 
-def is_draw():
-    if " " not in board:
-        return True
-    else:
-        return False
+    .cell.winning {
+      background: #66bb6a;
+      color: white;
+    }
 
-while True:
-    print_board()
-    player_move("X")
-    print_board()
-    if is_victory("X"):
-        print("X wins! Congratulations!")
-        break
-    elif is_draw():
-        print("It's a draw!")
-        break
-    player_move("O")
-    if is_victory("O"):
-        print_board()
-        print("O wins! Congratulations!")
-        break
-    elif is_draw():
-        print("It's a draw!")
-        break
+    .status {
+      margin-top: 20px;
+      font-size: 1.3rem;
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 10px;
+      backdrop-filter: blur(6px);
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #29b6f6;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #0288d1;
+    }
+  </style>
+</head>
+<body>
+
+<div id="particles-js"></div>
+
+<h1>Tic-Tac-Toe</h1>
+<div class="board" id="board"></div>
+<div class="status" id="status">Player X's turn</div>
+<button onclick="resetGame()">Restart Game</button>
+
+<!-- Game Logic -->
+<script>
+  const boardEl = document.getElementById("board");
+  const statusEl = document.getElementById("status");
+
+  let board = Array(9).fill(" ");
+  let currentPlayer = "X";
+  let gameOver = false;
+
+  function renderBoard() {
+    boardEl.innerHTML = "";
+    board.forEach((cell, index) => {
+      const div = document.createElement("div");
+      div.className = "cell";
+      div.innerText = cell;
+      div.addEventListener("click", () => makeMove(index));
+      boardEl.appendChild(div);
+    });
+  }
+
+  function makeMove(index) {
+    if (gameOver || board[index] !== " ") return;
+
+    board[index] = currentPlayer;
+    renderBoard();
+
+    const winningCombo = checkVictory(currentPlayer);
+    if (winningCombo) {
+      const cells = document.querySelectorAll(".cell");
+      winningCombo.forEach(i => cells[i].classList.add("winning"));
+      statusEl.innerText = `${currentPlayer} wins! 🎉`;
+      gameOver = true;
+    } else if (board.every(cell => cell !== " ")) {
+      statusEl.innerText = "It's a draw! 🤝";
+      gameOver = true;
+    } else {
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+      statusEl.innerText = `Player ${currentPlayer}'s turn`;
+    }
+  }
+
+  function checkVictory(icon) {
+    const winPatterns = [
+      [0,1,2], [3,4,5], [6,7,8],
+      [0,3,6], [1,4,7], [2,5,8],
+      [0,4,8], [2,4,6]
+    ];
+    for (let pattern of winPatterns) {
+      if (pattern.every(i => board[i] === icon)) {
+        return pattern;
+      }
+    }
+    return null;
+  }
+
+  function resetGame() {
+    board = Array(9).fill(" ");
+    currentPlayer = "X";
+    gameOver = false;
+    statusEl.innerText = "Player X's turn";
+    renderBoard();
+  }
+
+  renderBoard();
+</script>
+
+<!-- particles.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+<script>
+  particlesJS("particles-js", {
+    particles: {
+      number: { value: 80 },
+      size: { value: 3 },
+      color: { value: "#ffffff" },
+      line_linked: {
+        enable: true,
+        distance: 150,
+        color: "#ffffff",
+        opacity: 0.4,
+        width: 1
+      },
+      move: {
+        enable: true,
+        speed: 2,
+        direction: "none",
+        out_mode: "bounce"
+      }
+    },
+    interactivity: {
+      detect_on: "canvas",
+      events: {
+        onhover: { enable: true, mode: "repulse" },
+        onclick: { enable: true, mode: "push" }
+      },
+      modes: {
+        repulse: { distance: 100 },
+        push: { particles_nb: 4 }
+      }
+    },
+    retina_detect: true
+  });
+</script>
+
+</body>
+</html>
